@@ -1,0 +1,12 @@
+compile_pdf:
+  image: aergus/latex
+  script:
+    - cd latex_miqp_paper_2
+    - latexmk -pdflatex=lualatex -pdf -shell-escape paper.tex
+  rules:
+    - changes:
+      - latex_miqp_paper_2/*
+  artifacts:
+    paths:
+      - latex_miqp_paper_2/paper.pdf
+    expire_in: 4 week

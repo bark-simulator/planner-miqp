@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="ASCII"?><project>
+	<version>1.0</version>
+	<configs>
+		<config default="true" name="Konfiguration 1" category="opl">
+			<ref name="cplexmodel.mod" type="model">
+			</ref>
+			<ref name="cplexmodel.dat" type="data">
+			</ref>
+			<ref name="cplexmodel.ops" type="setting">
+			</ref>
+		</config>
+	</configs>
+	
+</project>
