@@ -110,21 +110,6 @@ cc_library(
     )
 
     _maybe(
-    native.new_local_repository,
-    name = "python_linux",
-    path = "./python/venv/",
-    build_file_content = """
-cc_library(
-    name = "python-lib",
-    srcs = glob(["lib/libpython3.*", "libs/python3.lib", "libs/python36.lib"]),
-    hdrs = glob(["include/**/*.h", "include/*.h"]),
-    includes = ["include/python3.6m", "include", "include/python3.7m", "include/python3.5m"], 
-    visibility = ["//visibility:public"],
-)
-    """
-    )
-
-    _maybe(
       new_git_repository,
       name = "com_github_spline",
       commit = "619c634ef5f6f2df1508c767f979eb4b7bf9c66a",
