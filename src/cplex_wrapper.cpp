@@ -28,7 +28,7 @@ namespace planner {
 namespace cplex {
 
 void CplexWrapper::setParameterDatFileRelative(const char* datfile) {
-  datfile_ = std::string("../cplex_models/") + std::string(datfile);
+  datfile_ = std::string("cplexmodel/") + std::string(datfile);
 }
 
 void CplexWrapper::setParameterDatFileAbsolute(const char* datfile) {
