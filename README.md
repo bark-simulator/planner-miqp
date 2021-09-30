@@ -38,6 +38,9 @@ If you use this code, please cite one of the following publications:
 ## Usage within BARK
 Have a look to the [example benchmark repo](https://github.com/bark-simulator/example_benchmark). You will need to build the code via `build --cxxopt='-std=c++17' --define planner_miqp=true --test_env LD_LIBRARY_PATH=/opt/ibm/ILOG/CPLEX_Studio1210/opl/bin/x86-64_linux`, see e.g., this' repositories .bazelrc-file.
 
+The following is a merging scenario simulated with BARK, where both vehicles plan cooperatively using the MINIVAN model. The cooperative solution is for the red vehicle to slow down and let the blue vehicle go first.
+![Cooperative Scenario](images/cooperative_scenario.gif)
+
 ## Usage within Apollo
 The integration within Apollo is done by building all relevant functions of this repository into a library and link this library in Apollo. Please follow the following steps:
 1) building the library libmiqp_planner_c_api.so
