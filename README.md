@@ -1,4 +1,6 @@
 # Mixed-Integer Behavior and Motion Planning
+[![CICommon](https://github.com/bark-simulator/planner-miqp/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/bark-simulator/planner-miqp/actions/workflows/main.yml)
+
 Planner implementation in C++ and the respective optimization source code (for the commercial optimization suite CPLEX). The implementation can be used as a behavior model in [BARK](https://github.com/bark-simulator/bark) and as a planning module for [APOLLO](https://github.com/fortiss/apollo/)
 
 Please have a look into the corresponding publications:
