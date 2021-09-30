@@ -112,7 +112,7 @@ class CplexWrapper {
 
   CplexWrapper(const char* modfile, ParameterSource parameterSource,
                const int precision)
-      : CplexWrapper("../cplex_models/", modfile, parameterSource, precision) {
+      : CplexWrapper("cplexmodel/", modfile, parameterSource, precision) {
   }  // due to the bazel structure this is
      // the correct relative location....
 

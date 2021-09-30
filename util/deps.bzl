@@ -92,20 +92,6 @@ cc_library(
     )
 
     _maybe(
-    native.new_local_repository,
-    name = "cplex_models",
-    path = "cplexmodel",
-    build_file_content = """
-filegroup(
-   name="cplex_models_filegroup",
-   srcs=glob(["*.mod",
-              "*.dat",
-              "*.txt",]),
-   visibility = ["//visibility:public"],
-)""",
-    )
-
-    _maybe(
     http_archive,
     name = "pybind11",
     strip_prefix = "pybind11-2.3.0",

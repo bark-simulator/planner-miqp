@@ -55,7 +55,7 @@ Settings DefaultTestSettings() {
   s.buffer_for_merging_tolerance = 0.1;
   s.refLineInterpInc = 0.2;
   s.additionalStepsForReferenceLongerHorizon = 4;
-  s.cplexModelpath = "../cplex_models/";
+  s.cplexModelpath = "cplexmodel/";
   s.useSos = false;
   s.useBranchingPriorities = false;
   s.warmstartType = CplexWrapper::WarmstartType::NO_WARMSTART;

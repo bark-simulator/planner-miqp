@@ -41,7 +41,7 @@ cc_library(
     "@com_github_eigen_eigen//:eigen", 
   ],
   visibility = ["//visibility:public"],
-  data = ["@cplex_models//:cplex_models_filegroup"],
+  data = ["//cplexmodel:cplex_models_filegroup"],
   copts = ["-DIL_STD", "-fPIC", "-DILOUSEMT", "-D_REENTRANT"],
 )
 
