@@ -81,3 +81,15 @@ py_test(
           "@bark_project//bark/runtime:runtime"],
   tags = ["exclusive"],
 )
+
+py_test(
+  name = "py_convexified_map_test",
+  srcs = ["py_convexified_map_test.py"],
+  data = ['//python/bindings:miqp.so',
+          '//common/tests:xodr_data'],
+  imports = ['../python/bindings'],
+  deps = [
+      "@bark_project//bark/runtime/viewer:matplotlib_viewer",
+      "@bark_project//bark/runtime:runtime",
+  ]
+)

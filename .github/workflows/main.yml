@@ -15,4 +15,4 @@ jobs:
       - name: Getting into venv
         run: . ./python/venv/bin/activate
       - name: Runing bazel test
-        run: bazel test //common/...
+        run: bazel test //common/tests:all
