@@ -1,7 +1,7 @@
 # Mixed-Integer Behavior and Motion Planning
 [![CICommon](https://github.com/bark-simulator/planner-miqp/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/bark-simulator/planner-miqp/actions/workflows/main.yml)
 
-Planner implementation in C++ and the respective optimization source code (for the commercial optimization suite CPLEX). The implementation can be used as a behavior model in [BARK](https://github.com/bark-simulator/bark) and as a planning module for [APOLLO](https://github.com/fortiss/apollo/)
+Planner implementation in C++ and the respective optimization source code (for the commercial optimization suite CPLEX). The implementation can be used as a behavior model in [BARK](https://github.com/bark-simulator/bark) and as a planning module for [APOLLO](https://github.com/fortiss/apollo/).
 
 Please have a look into the corresponding publications:
 * [Optimal Behavior Planning for Autonomous Driving: A Generic Mixed-Integer Formulation](https://ieeexplore.ieee.org/document/9304743) (IV 2020)
@@ -45,7 +45,7 @@ The following is a merging scenario simulated with BARK, where both vehicles pla
 
 ## Usage within Apollo
 The integration within Apollo is done by building all relevant functions of this repository into a library and link this library in Apollo. Please follow the following steps:
-1) building the library libmiqp_planner_c_api.so
+1) building the library libmiqp_planner_c_api.so via `bazel build //...`
 2) copying it to the Apollo repository by calling `bash deploy_apollo.sh` (you probably need to update the path to Apollo there or pass it as an argument)
 3) build Apollo, see [build documentation](https://github.com/fortiss/apollo/blob/dev_fortiss/docs/fortiss/build.md)
 
