@@ -59,6 +59,9 @@ void python_planner_miqp(py::module m) {
       .def_property_readonly("ref_trajectories",
                              &BehaviorMiqpAgent::GetRefTrajectories,
                              "reference trajectories.")
+      .def_property_readonly("reference_lines",
+                             &BehaviorMiqpAgent::GetReferenceLines,
+                             "reference lines.")
       .def_property_readonly(
           "ref_trajectories_longer_horizon",
           &BehaviorMiqpAgent::GetRefTrajectoriesLongerHorizon,

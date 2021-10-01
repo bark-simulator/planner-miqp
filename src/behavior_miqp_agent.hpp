@@ -154,6 +154,15 @@ class BehaviorMiqpAgent : public BehaviorModel {
   }
 
   /**
+   * @brief Get the Reference Lines of all controlled cars
+   *
+   * @return std::vector<Line>
+   */
+  std::vector<bark::geometry::Line> GetReferenceLines() const {
+    return reference_lines_;
+  }
+
+  /**
    * @brief Get the Collision Radius
    *
    * @return double
@@ -264,6 +273,7 @@ class BehaviorMiqpAgent : public BehaviorModel {
   std::vector<Trajectory> last_trajectories_all_cars_;
   std::vector<Trajectory> ref_trajectories_;
   std::vector<Trajectory> ref_trajectories_longer_horizon_;
+  std::vector<bark::geometry::Line> reference_lines_;
   miqp::common::geometry::PolygonMap convex_shrinked_env_polygons_all_cars_;
   std::map<int, std::pair<double, double>> last_axy_all_cars_;
   miqp::planner::cplex::CplexWrapper last_cplex_wrapper_;

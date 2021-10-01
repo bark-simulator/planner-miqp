@@ -160,6 +160,8 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
     planner_.UpdateCar(idx_ego_, initialState, ref_line, current_time,
                        track_reference_positions);
   }
+  reference_lines_.clear();
+  reference_lines_.push_back(ref_line);
 
   if (multi_agent_planning_) {
     // Remove cars from previous step
@@ -181,6 +183,7 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
       int idx_other = planner_.AddCar(initial_state_j, ref_line_j,
                                       desiredVelocity_, current_time);
       car_idxs_.insert(std::make_pair(agent_j.first, idx_other));
+      reference_lines_.push_back(ref_line_j);
     }
     // last_dyn_occupancies_ can be used to plot future simulated behavior
     // last_dyn_occupancies_ = CollectDynOccupancies(observed_world);
