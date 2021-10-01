@@ -71,7 +71,7 @@ cc_library(
         "//common/parameter:parameter_preparer",
         "//common/reference:reference_trajectory_generator",
     ],
-    data = ["@cplex_models//:cplex_models_filegroup"],
+    data = ["//cplexmodel:cplex_models_filegroup"],
     copts = ["-DIL_STD", "-fPIC", "-DILOUSEMT", "-D_REENTRANT"],
 )
 

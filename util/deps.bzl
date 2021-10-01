@@ -92,20 +92,6 @@ cc_library(
     )
 
     _maybe(
-    native.new_local_repository,
-    name = "cplex_models",
-    path = "cplexmodel",
-    build_file_content = """
-filegroup(
-   name="cplex_models_filegroup",
-   srcs=glob(["*.mod",
-              "*.dat",
-              "*.txt",]),
-   visibility = ["//visibility:public"],
-)""",
-    )
-
-    _maybe(
     http_archive,
     name = "pybind11",
     strip_prefix = "pybind11-2.3.0",
@@ -121,21 +107,6 @@ cc_library(
     strip_include_prefix = "include/"
 )
 """
-    )
-
-    _maybe(
-    native.new_local_repository,
-    name = "python_linux",
-    path = "./python/venv/",
-    build_file_content = """
-cc_library(
-    name = "python-lib",
-    srcs = glob(["lib/libpython3.*", "libs/python3.lib", "libs/python36.lib"]),
-    hdrs = glob(["include/**/*.h", "include/*.h"]),
-    includes = ["include/python3.6m", "include", "include/python3.7m", "include/python3.5m"], 
-    visibility = ["//visibility:public"],
-)
-    """
     )
 
     _maybe(

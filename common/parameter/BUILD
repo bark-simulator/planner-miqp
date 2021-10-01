@@ -10,7 +10,8 @@ cc_library(
     srcs = [
         "regions.cpp",
     ],
-    deps = ["@com_github_eigen_eigen//:eigen"],
+    deps = ["@com_github_eigen_eigen//:eigen",
+            "@bark_project//bark:include"],
     visibility = ["//visibility:public"],
 )
 

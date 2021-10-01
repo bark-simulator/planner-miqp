@@ -73,18 +73,6 @@ cc_test(
     ],
 )
 
-py_test(
-  name = "py_convexified_map_test",
-  srcs = ["py_convexified_map_test.py"],
-  data = ['//python/bindings:miqp.so',
-          ':xodr_data'],
-  imports = ['../../python/bindings'],
-  deps = [
-      "@bark_project//bark/runtime/viewer:matplotlib_viewer",
-      "@bark_project//bark/runtime:runtime",
-  ]
-)
-
 cc_test(
     name = "fitting_polynomial_parameters_test",
     srcs = [
@@ -93,6 +81,6 @@ cc_test(
     copts = ["-Iexternal/gtest/include"],
     deps = [
         "@gtest//:main",
-        "//src:planner_miqp",
+        "//common/parameter:parameters",
     ],
 )

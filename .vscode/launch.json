@@ -1,0 +1,82 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "reference trajectory generator test",
+            "type": "cppdbg",
+            //"preLaunchTask": "build",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/common/tests/reference_trajectory_generator_test",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+
+        {
+            "name": "miqp planner test",
+            "type": "cppdbg",
+            "preLaunchTask": "build",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/test/miqp_planner_test.runfiles/planner_miqp/test/miqp_planner_test",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bazel-bin/test/miqp_planner_test.runfiles/planner_miqp",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "environment": [
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "/opt/ibm/ILOG/CPLEX_Studio1210/opl/bin/x86-64_linux"
+                }
+            ],
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+
+        {
+            "name": "cplex wrapper test",
+            "type": "cppdbg",
+            "preLaunchTask": "build",
+            "request": "launch",
+            "program": "${workspaceFolder}/bazel-bin/test/cplex_wrapper_test.runfiles/planner_miqp/test/cplex_wrapper_test",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "environment": [
+                {
+                    "name": "LD_LIBRARY_PATH",
+                    "value": "/opt/ibm/ILOG/CPLEX_Studio1210/opl/bin/x86-64_linux"
+                }
+            ],
+            "miDebuggerPath": "/usr/bin/gdb"
+        }
+    ]
+}
