@@ -296,6 +296,8 @@ class BehaviorMiqpAgent : public BehaviorModel {
   std::map<std::size_t, int> obstacle_ids_;  // occupancy hash, miqp obstacle id
   std::vector<DynamicOccupancyPtr> last_dyn_occupancies_;
   miqp::planner::cplex::CplexWrapper::WarmstartType warmstart_type_;
+  bark::world::map::LaneCorridorPtr last_lane_corridor_;
+  bool do_no_change_lane_corridor_;
 };
 
 inline std::shared_ptr<BehaviorModel> BehaviorMiqpAgent::Clone() const {

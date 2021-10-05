@@ -79,7 +79,11 @@ BehaviorMiqpAgent::BehaviorMiqpAgent(const commons::ParamsPtr& params)
       car_idxs_(),
       obstacle_ids_(),
       last_dyn_occupancies_(),
-      warmstart_type_(settings_.warmstartType) {
+      warmstart_type_(settings_.warmstartType),
+      last_lane_corridor_(nullptr),
+      do_no_change_lane_corridor_(params->GetBool(
+          "Miqp::DoNotChangeLaneCorridor",
+          "Stay in the lane corridor selected in the first step", true)) {
   Input input = Input(2);
   input << 0.0, 0.0;
   SetLastAction(input);
@@ -122,7 +126,9 @@ BehaviorMiqpAgent::BehaviorMiqpAgent(const BehaviorMiqpAgent& bm)
       car_idxs_(bm.car_idxs_),
       obstacle_ids_(bm.obstacle_ids_),
       last_dyn_occupancies_(bm.last_dyn_occupancies_),
-      warmstart_type_(bm.warmstart_type_) {}
+      warmstart_type_(bm.warmstart_type_),
+      last_lane_corridor_(bm.last_lane_corridor_),
+      do_no_change_lane_corridor_(bm.do_no_change_lane_corridor_) {}
 
 dynamic::Trajectory BehaviorMiqpAgent::Plan(
     double delta_time, const world::ObservedWorld& observed_world) {
@@ -305,13 +311,34 @@ LaneCorridorPtr BehaviorMiqpAgent::ChooseLaneCorridor(
       road_corr->GetLeftRightLaneCorridor(ego_pos);
   LaneCorridorPtr corr_curr = observed_world.GetLaneCorridor();
 
+  // default: we stay in current lane corridor
+  LaneCorridorPtr target_corr = corr_curr;
+
+  // coose rightmost lane
+  // TODO bug: somehow left and right is confused on some maps when parsing in bark
+  // if (corr_right) {
+  //   LOG(INFO) << "Right corridor available";
+  //   if (target_corr != corr_right) {
+  //     target_corr = corr_right;
+  //     LOG(INFO) << "A more right lane corridor is available, choosing this
+  //     one by default";
+  //   }
+  // }
+  // TODO: delete this piece of code once the above bug is fixed
+  // if (corr_left) {
+  //   LOG(INFO) << "Left corridor available";
+  //   if (target_corr != corr_left) {
+  //     target_corr = corr_left;
+  //     LOG(INFO) << "A more right lane corridor is available, choosing this
+  //     one by default";
+  //   }
+  // }
+
+  // Lane ends
   float estimated_travel_dist =
       desiredVelocity_ * settings_.ts * settings_.nr_steps;
   float curr_length_until_end = corr_curr->LengthUntilEnd(ego_pos);
   const float dist_tolerance = 2.0;
-
-  // default: we stay in current lane corridor
-  LaneCorridorPtr target_corr = corr_curr;
   if (curr_length_until_end < estimated_travel_dist) {
     LOG(INFO) << "there is not much left, checking switching to another lane";
     float right_length_until_end = 0.0, left_length_until_end = 0.0;
@@ -333,10 +360,11 @@ LaneCorridorPtr BehaviorMiqpAgent::ChooseLaneCorridor(
       }
     }
   } else {
-    LOG(INFO) << "no reason to change lanes yet, estimated_travel_dist "
+    LOG(INFO) << "no reason to change lanes yet due to estimated_travel_dist "
               << estimated_travel_dist << " curr_length_until_end "
               << curr_length_until_end;
   }
+
   return target_corr;
 }
 
@@ -638,8 +666,15 @@ void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
     LOG(INFO) << "egopoly = [" << occupancyEgo.ToArray() << "]";
   }
 
-  LaneCorridorPtr target_lc = ChooseLaneCorridor(observed_world);
-  refLine = target_lc->GetFineCenterLine();
+  if(do_no_change_lane_corridor_) {
+    if (!last_lane_corridor_) {
+      last_lane_corridor_ = ChooseLaneCorridor(observed_world);
+    }
+    refLine = last_lane_corridor_->GetFineCenterLine();
+  } else {
+    LaneCorridorPtr target_lc = ChooseLaneCorridor(observed_world);
+    refLine = target_lc->GetFineCenterLine();
+  }
 
   std::pair<double, double> axy;
   AgentId id = observed_world.GetEgoAgentId();
