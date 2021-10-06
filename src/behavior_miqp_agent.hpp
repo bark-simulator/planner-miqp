@@ -54,7 +54,8 @@ class BehaviorMiqpAgent : public BehaviorModel {
    * @return std::shared_ptr<bark::world::map::LaneCorridor>
    */
   std::shared_ptr<bark::world::map::LaneCorridor> ChooseLaneCorridor(
-      const world::ObservedWorld& observed_world) const;
+      const world::ObservedWorld& observed_world,
+      const double prediction_speed) const;
 
   /**
    * @brief set's behavior model for ego vehicle selected through parameter
@@ -260,11 +261,10 @@ class BehaviorMiqpAgent : public BehaviorModel {
    */
   void ProcessBarkAgent(const world::ObservedWorld observed_world,
                         Eigen::MatrixXd& initialState,
-                        bark::geometry::Line& refLine);
+                        bark::geometry::Line& refLine, double& desiredVelocity);
 
   MiqpPlannerSettings settings_;
   miqp::planner::MiqpPlanner planner_;
-  double desiredVelocity_;
   double deltaSDesiredVelocity_;
   // timestep, egoid, result, solution properties
   std::tuple<double, int, std::shared_ptr<miqp::planner::RawResults>,

@@ -1,5 +1,5 @@
 # Copyright (c) 2021 fortiss GmbH
-# 
+#
 # Authors: Klemens Esterle and Tobias Kessler
 #
 # This work is licensed under the terms of the MIT license.
@@ -34,9 +34,9 @@ class MiqpSimulationTest(unittest.TestCase):
 
     def test_merging_ending_lane(self):
         scenario = [{"agent_type": "miqp", "start_pose": start_merging_ending_lane,
-                     "start_vel": speed_4, "goal_poly_pose": goal_merging},
+                     "start_vel": speed_4, "goal_poly_pose": goal_merging, "target_vel": speed_4},
                     {"agent_type": "idm", "start_pose": start_merging_bottom_lane_front,
-                     "start_vel": speed_4, "goal_poly_pose": goal_merging}]
+                     "start_vel": speed_4, "goal_poly_pose": goal_merging, "target_vel": speed_4}]
         parameters = {"Miqp::WarmstartType": 2,
                       "Miqp::NrRegions": 32,
                       "Miqp::UseSpecialOrderedSet": False,
@@ -51,7 +51,6 @@ class MiqpSimulationTest(unittest.TestCase):
                       "Miqp::varsel": 0,
                       "Miqp::mircuts": 0,
                       "Miqp::UseBranchingPriorities": True,
-                      "Miqp::DesiredVelocity": speed_4,
                       "Miqp::MaxVelocityFitting": 10.0,
                       "Miqp::AdditionalStepsForReferenceLongerHorizon": 2,
                       "Miqp::ParallelMode": -1

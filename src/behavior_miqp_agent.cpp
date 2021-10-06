@@ -39,8 +39,6 @@ BehaviorMiqpAgent::BehaviorMiqpAgent(const commons::ParamsPtr& params)
     : BehaviorModel(params),
       settings_(MiqpSettingsFromParamServer(params)),
       planner_(MiqpPlanner(settings_)),
-      desiredVelocity_(params->GetReal("Miqp::DesiredVelocity",
-                                       "Desired Velocity Ego", 10.0)),
       deltaSDesiredVelocity_(params->GetReal(
           "Miqp::DeltaSDesiredVelocity",
           "meters in which desired velocity will be used", 5.0)),
@@ -99,7 +97,6 @@ BehaviorMiqpAgent::BehaviorMiqpAgent(const BehaviorMiqpAgent& bm)
     : BehaviorModel(bm),
       settings_(bm.settings_),
       planner_(bm.planner_),
-      desiredVelocity_(bm.desiredVelocity_),
       deltaSDesiredVelocity_(bm.deltaSDesiredVelocity_),
       currentSolution_(bm.currentSolution_),
       ref_trajectories_(bm.ref_trajectories_),
@@ -154,10 +151,15 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
       1, static_cast<int>(InitialStateIndices::MIQP_INITIAL_STATE_SIZE));
   bool track_reference_positions = true;  // TODO: move?
   Line ref_line;
-  ProcessBarkAgent(observed_world, initialState, ref_line);
+  double tmp;
+  ProcessBarkAgent(observed_world, initialState, ref_line, tmp);
 
   if (firstrun_) {
-    idx_ego_ = planner_.AddCar(initialState, ref_line, desiredVelocity_,
+    const double desiredVelocity =
+        GetParams()->GetReal("Miqp::DesiredVelocity", "Desired Velocity Ego", 10.0);
+    LOG(INFO) << "Setting desired velocity for MIQP ego agent to "
+              << desiredVelocity;
+    idx_ego_ = planner_.AddCar(initialState, ref_line, desiredVelocity,
                                deltaSDesiredVelocity_, current_time,
                                track_reference_positions);
     firstrun_ = false;
@@ -180,14 +182,16 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
     // Add new cars
     for (const auto& agent_j : observed_world.GetOtherAgents()) {
       ObservedWorldPtr observed_world_j =
-          observed_world.ObserveForOtherAgent(agent_j.first);
+          observed_world.ObserveForOtherAgent(agent_j.first);  // clones world
 
       Eigen::MatrixXd initial_state_j(
           1, static_cast<int>(InitialStateIndices::MIQP_INITIAL_STATE_SIZE));
       Line ref_line_j;
-      ProcessBarkAgent(*observed_world_j, initial_state_j, ref_line_j);
+      double desiredVelocity;
+      ProcessBarkAgent(*observed_world_j, initial_state_j, ref_line_j,
+                       desiredVelocity);
       int idx_other = planner_.AddCar(initial_state_j, ref_line_j,
-                                      desiredVelocity_, current_time);
+                                      desiredVelocity, current_time);
       car_idxs_.insert(std::make_pair(agent_j.first, idx_other));
       reference_lines_.push_back(ref_line_j);
     }
@@ -301,7 +305,7 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
 }
 
 LaneCorridorPtr BehaviorMiqpAgent::ChooseLaneCorridor(
-    const ObservedWorld& observed_world) const {
+    const ObservedWorld& observed_world, const double prediction_speed) const {
   // Ego Car as Agent
   auto ego_pos = observed_world.CurrentEgoPosition();
   auto road_corr = observed_world.GetRoadCorridor();
@@ -315,8 +319,8 @@ LaneCorridorPtr BehaviorMiqpAgent::ChooseLaneCorridor(
   LaneCorridorPtr target_corr = corr_curr;
 
   // coose rightmost lane
-  // TODO bug: somehow left and right is confused on some maps when parsing in bark
-  // if (corr_right) {
+  // TODO bug: somehow left and right is confused on some maps when parsing in
+  // bark if (corr_right) {
   //   LOG(INFO) << "Right corridor available";
   //   if (target_corr != corr_right) {
   //     target_corr = corr_right;
@@ -336,7 +340,7 @@ LaneCorridorPtr BehaviorMiqpAgent::ChooseLaneCorridor(
 
   // Lane ends
   float estimated_travel_dist =
-      desiredVelocity_ * settings_.ts * settings_.nr_steps;
+      prediction_speed * settings_.ts * settings_.nr_steps;
   float curr_length_until_end = corr_curr->LengthUntilEnd(ego_pos);
   const float dist_tolerance = 2.0;
   if (curr_length_until_end < estimated_travel_dist) {
@@ -377,7 +381,9 @@ void BehaviorMiqpAgent::ApplyEgoModelForJointPrediction(
   BehaviorModelPtr pred_ego_behavior;
   if (choose_ego_model_joint_prediction_ == 0) {
     LOG(INFO) << "Ego Model for prediction: BehaviorIDMClassic";
-    params->SetReal("BehaviorIDMClassic::DesiredVelocity", desiredVelocity_);
+    const double desiredVelocity =
+        GetParams()->GetReal("Miqp::DesiredVelocity", "Desired Velocity Ego", 10.0);
+    params->SetReal("BehaviorIDMClassic::DesiredVelocity", desiredVelocity);
     pred_ego_behavior = std::make_shared<BehaviorIDMClassic>(params);
   } else if (choose_ego_model_joint_prediction_ == 1) {
     LOG(INFO) << "Ego Model for prediction: BehaviorConstantAcceleration";
@@ -654,7 +660,8 @@ void BehaviorMiqpAgent::CheckPoseOutOfMap() const {
 
 void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
                                          Eigen::MatrixXd& initialState,
-                                         Line& refLine) {
+                                         Line& refLine,
+                                         double& desiredVelocity) {
   // make sure ego vehicle is initially within map
   Polygon occupancyEgo = observed_world.GetEgoAgent()->GetPolygonFromState(
       observed_world.CurrentEgoState());
@@ -666,13 +673,27 @@ void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
     LOG(INFO) << "egopoly = [" << occupancyEgo.ToArray() << "]";
   }
 
-  if(do_no_change_lane_corridor_) {
+  const Trajectory last_traj =
+      observed_world.GetEgoAgent()->GetBehaviorTrajectory();
+  const auto state = observed_world.CurrentEgoState();
+  if(last_traj.rows() > 0) {
+    const double last_traj_vel_end =
+      last_traj(last_traj.rows() - 1, StateDefinition::VEL_POSITION);
+  desiredVelocity = last_traj_vel_end;
+  LOG(INFO) << "Setting agent target speed to last trajectory end speed = " << desiredVelocity;
+  } else {
+    desiredVelocity = state(StateDefinition::VEL_POSITION);
+    LOG(INFO) << "Setting agent target speed to current speed = " << desiredVelocity;
+  }
+
+  double speed_for_lc_prediction = std::max(desiredVelocity, state(StateDefinition::VEL_POSITION));
+  if (do_no_change_lane_corridor_) {
     if (!last_lane_corridor_) {
-      last_lane_corridor_ = ChooseLaneCorridor(observed_world);
+      last_lane_corridor_ = ChooseLaneCorridor(observed_world, speed_for_lc_prediction);
     }
     refLine = last_lane_corridor_->GetFineCenterLine();
   } else {
-    LaneCorridorPtr target_lc = ChooseLaneCorridor(observed_world);
+    LaneCorridorPtr target_lc = ChooseLaneCorridor(observed_world, speed_for_lc_prediction);
     refLine = target_lc->GetFineCenterLine();
   }
 
@@ -685,6 +706,7 @@ void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
   }
   initialState = miqp::common::dynamic::ConvertBarkStateTo2ndOrder(
       observed_world.CurrentEgoState(), axy.first, axy.second);
+  
 }
 
 void BehaviorMiqpAgent::SetWarmstartType(

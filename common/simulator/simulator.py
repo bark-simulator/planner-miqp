@@ -94,6 +94,7 @@ class SimulateScenario():
             start_vel = agent.get("start_vel")
             goal_poly_pose = agent.get("goal_poly_pose")
             agent_type = agent.get("agent_type")
+            target_vel = agent.get("target_vel")
 
             # Goal
             goal_poly = GenerateGoalRectangle(20, 5)
@@ -102,6 +103,7 @@ class SimulateScenario():
 
             # Agent
             if agent_type == "miqp":
+                self.params["Miqp"]["DesiredVelocity"] = target_vel
                 self.behavior_model.append(BehaviorMiqpAgent(self.params))
                 init_state = np.array(
                     [0, start_pose[0], start_pose[1], start_pose[2], start_vel])
@@ -110,9 +112,7 @@ class SimulateScenario():
                 self.world.AddAgent(self.agent)
 
             elif agent_type == "idm":
-                # if no desired velocity specified, set start velocity as desired.
-                if self.params["BehaviorIDMClassic"]["DesiredVelocity"] is not None:
-                    self.params["BehaviorIDMClassic"]["DesiredVelocity"] = start_vel
+                self.params["BehaviorIDMClassic"]["DesiredVelocity"] = target_vel
                 other_behavior_model = BehaviorIDMClassic(self.params)
                 init_state = np.array(
                     [0, start_pose[0], start_pose[1], start_pose[2], start_vel])
