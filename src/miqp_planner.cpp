@@ -49,7 +49,10 @@ MiqpPlanner::MiqpPlanner(const Settings& settings,
       cplexModelpath_(settings.cplexModelpath),
       cplexWrapper_(CplexWrapper(cplexModelpath_, cplexModelname_,
                                  CplexWrapper::CPPINPUTS, settings.precision)),
-      obstacles_roi_(bark::geometry::Polygon()) {
+      obstacles_roi_(bark::geometry::Polygon()),
+      minimum_valid_speed_vx_vy_(
+          0.8)  // trajectories are cut off below this speed threshold
+{
   // std::cout << "Constructing MiqpPlanner" << std::endl;
   // Bind the parameters_ ptr to the cplex wrapper
   cplexWrapper_.resetParameters(parameters_);
@@ -1126,21 +1129,34 @@ Eigen::MatrixXd MiqpPlanner::Get2ndOrderStateFromSolution(
 }
 
 bark::models::dynamic::Trajectory MiqpPlanner::GetBarkTrajectory(
-    const int carIdx, const float start_time) const {
+    const int carIdx, const float start_time) {
+  bool low_speed_check = true;
   const std::shared_ptr<RawResults> rawResults = cplexWrapper_.getRawResults();
   assert(carIdx < rawResults->NrCars);
-  const int N = rawResults->N;
+  int N = rawResults->N;
   const float dt = parameters_->ts;
 
   Eigen::VectorXd time(N), x(N), y(N), theta(N), vel(N);
   for (int i = 0; i < N; ++i) {
+    // at the first invalid vx vy point cut off the current trajectory
+    const double vx = rawResults->vel_x(carIdx, i);
+    const double vy = rawResults->vel_y(carIdx, i);
+    if (low_speed_check && !IsVxVyValid(vx, vy)) {
+      LOG(INFO) << "Trajectory at idx = " << i << " has invalid (vx,vy) = ("
+                << vx << ", " << vy << "); skipping further points.";
+      time.conservativeResize(i);
+      x.conservativeResize(i);
+      y.conservativeResize(i);
+      theta.conservativeResize(i);
+      vel.conservativeResize(i);
+      N = i;  // for traj size allocation
+      break;
+    }
     time(i) = start_time + i * dt;
     x(i) = rawResults->pos_x(carIdx, i);
     y(i) = rawResults->pos_y(carIdx, i);
-    theta(i) =
-        atan2(rawResults->vel_y(carIdx, i), rawResults->vel_x(carIdx, i));
-    vel(i) = sqrt(pow(rawResults->vel_x(carIdx, i), 2) +
-                  pow(rawResults->vel_y(carIdx, i), 2));
+    theta(i) = atan2(vy, vx);
+    vel(i) = sqrt(pow(vx, 2) + pow(vy, 2));
   }
 
   Trajectory trajBark(N, static_cast<int>(StateDefinition::MIN_STATE_SIZE));
@@ -1150,6 +1166,11 @@ bark::models::dynamic::Trajectory MiqpPlanner::GetBarkTrajectory(
   trajBark.col(StateDefinition::THETA_POSITION) = std::move(theta);
   trajBark.col(StateDefinition::VEL_POSITION) = std::move(vel);
   return trajBark;
+}
+
+bool MiqpPlanner::IsVxVyValid(const double& vx, const double& vy) {
+  return (fabs(vx) > minimum_valid_speed_vx_vy_ ||
+          fabs(vy) > minimum_valid_speed_vx_vy_);
 }
 
 Eigen::MatrixXd MiqpPlanner::CarStateToMiqpState(float x, float y, float theta,

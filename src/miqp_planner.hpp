@@ -200,7 +200,7 @@ class MiqpPlanner {
    * @return bark::models::dynamic::Trajectory
    */
   bark::models::dynamic::Trajectory GetBarkTrajectory(
-      const int carIdx, const float start_time) const;
+      const int carIdx, const float start_time);
 
   /**
    * @brief creates state definition suitable for optimization
@@ -388,6 +388,14 @@ class MiqpPlanner {
    */
   void UpdateObstaclesROI(const double x, const double y, const double theta);
 
+  /**
+   * @brief check if either vx or vy is below the low speed threshold minimum_valid_speed_vx_vy_
+   *
+   * @param vx
+   * @param vy
+   */
+  bool IsVxVyValid(const double& vx, const double& vy);
+
  private:
   std::shared_ptr<ModelParameters> parameters_;
   std::shared_ptr<RawResults> warmstart_;
@@ -410,6 +418,7 @@ class MiqpPlanner {
   const char* cplexModelpath_;
   miqp::planner::cplex::CplexWrapper cplexWrapper_;
   bark::geometry::Polygon obstacles_roi_;
+  double minimum_valid_speed_vx_vy_;
 };
 
 }  // namespace planner
