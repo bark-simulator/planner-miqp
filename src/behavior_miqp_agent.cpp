@@ -81,7 +81,9 @@ BehaviorMiqpAgent::BehaviorMiqpAgent(const commons::ParamsPtr& params)
       last_lane_corridor_(nullptr),
       do_no_change_lane_corridor_(params->GetBool(
           "Miqp::DoNotChangeLaneCorridor",
-          "Stay in the lane corridor selected in the first step", true)) {
+          "Stay in the lane corridor selected in the first step", true)),
+      prediction_error_time_percentage_(
+          params->GetReal("Miqp::PredictionErrorTimePercentage", "", 0.0)) {
   Input input = Input(2);
   input << 0.0, 0.0;
   SetLastAction(input);
@@ -153,10 +155,11 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
   Line ref_line;
   double tmp;
   ProcessBarkAgent(observed_world, initialState, ref_line, tmp);
+  LOG(INFO) << "Ignoring this target speed computation for the ego agent";
 
   if (firstrun_) {
-    const double desiredVelocity =
-        GetParams()->GetReal("Miqp::DesiredVelocity", "Desired Velocity Ego", 10.0);
+    const double desiredVelocity = GetParams()->GetReal(
+        "Miqp::DesiredVelocity", "Desired Velocity Ego", 10.0);
     LOG(INFO) << "Setting desired velocity for MIQP ego agent to "
               << desiredVelocity;
     idx_ego_ = planner_.AddCar(initialState, ref_line, desiredVelocity,
@@ -190,6 +193,9 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
       double desiredVelocity;
       ProcessBarkAgent(*observed_world_j, initial_state_j, ref_line_j,
                        desiredVelocity);
+      if(fabs(prediction_error_time_percentage_) > 0.01) {
+        desiredVelocity *= prediction_error_time_percentage_;
+      }
       int idx_other = planner_.AddCar(initial_state_j, ref_line_j,
                                       desiredVelocity, current_time);
       car_idxs_.insert(std::make_pair(agent_j.first, idx_other));
@@ -221,14 +227,18 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
     for (auto it = dyn_occ.begin(); it != dyn_occ.end(); it++) {
       // get hash
       std::size_t dyno_hash = DynamicOccupancy::GetHash((*it)->id, (*it)->type);
+      Trajectory prediction = (*it)->prediction;
+      if (fabs(prediction_error_time_percentage_) > 0.01) {
+        IntroducePredictionError(prediction);
+      }
       if (obstacle_ids_.count(dyno_hash) == 0) {
         // obstacle needs to be added
-        int added_miqp_id = planner_.AddObstacle(
-            (*it)->prediction, (*it)->shape, (*it)->is_soft, false);
+        int added_miqp_id = planner_.AddObstacle(prediction, (*it)->shape,
+                                                 (*it)->is_soft, false);
         obstacle_ids_[dyno_hash] = added_miqp_id;
       } else {
         // obstacle is present -> update traj
-        planner_.UpdateObstacle(obstacle_ids_[dyno_hash], (*it)->prediction,
+        planner_.UpdateObstacle(obstacle_ids_[dyno_hash], prediction,
                                 (*it)->shape);
       }
     }
@@ -381,8 +391,8 @@ void BehaviorMiqpAgent::ApplyEgoModelForJointPrediction(
   BehaviorModelPtr pred_ego_behavior;
   if (choose_ego_model_joint_prediction_ == 0) {
     LOG(INFO) << "Ego Model for prediction: BehaviorIDMClassic";
-    const double desiredVelocity =
-        GetParams()->GetReal("Miqp::DesiredVelocity", "Desired Velocity Ego", 10.0);
+    const double desiredVelocity = GetParams()->GetReal(
+        "Miqp::DesiredVelocity", "Desired Velocity Ego", 10.0);
     params->SetReal("BehaviorIDMClassic::DesiredVelocity", desiredVelocity);
     pred_ego_behavior = std::make_shared<BehaviorIDMClassic>(params);
   } else if (choose_ego_model_joint_prediction_ == 1) {
@@ -676,24 +686,29 @@ void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
   const Trajectory last_traj =
       observed_world.GetEgoAgent()->GetBehaviorTrajectory();
   const auto state = observed_world.CurrentEgoState();
-  if(last_traj.rows() > 0) {
+  if (last_traj.rows() > 0) {
     const double last_traj_vel_end =
-      last_traj(last_traj.rows() - 1, StateDefinition::VEL_POSITION);
-  desiredVelocity = last_traj_vel_end;
-  LOG(INFO) << "Setting agent target speed to last trajectory end speed = " << desiredVelocity;
+        last_traj(last_traj.rows() - 1, StateDefinition::VEL_POSITION);
+    desiredVelocity = last_traj_vel_end;
+    LOG(INFO) << "Setting agent target speed to last trajectory end speed = "
+              << desiredVelocity << " for agent id " << observed_world.GetEgoAgent()->GetAgentId();
   } else {
     desiredVelocity = state(StateDefinition::VEL_POSITION);
-    LOG(INFO) << "Setting agent target speed to current speed = " << desiredVelocity;
+    LOG(INFO) << "Setting agent target speed to current speed = "
+              << desiredVelocity << " for agent id " << observed_world.GetEgoAgent()->GetAgentId();
   }
 
-  double speed_for_lc_prediction = std::max(desiredVelocity, state(StateDefinition::VEL_POSITION));
+  double speed_for_lc_prediction =
+      std::max(desiredVelocity, state(StateDefinition::VEL_POSITION));
   if (do_no_change_lane_corridor_) {
     if (!last_lane_corridor_) {
-      last_lane_corridor_ = ChooseLaneCorridor(observed_world, speed_for_lc_prediction);
+      last_lane_corridor_ =
+          ChooseLaneCorridor(observed_world, speed_for_lc_prediction);
     }
     refLine = last_lane_corridor_->GetFineCenterLine();
   } else {
-    LaneCorridorPtr target_lc = ChooseLaneCorridor(observed_world, speed_for_lc_prediction);
+    LaneCorridorPtr target_lc =
+        ChooseLaneCorridor(observed_world, speed_for_lc_prediction);
     refLine = target_lc->GetFineCenterLine();
   }
 
@@ -706,13 +721,24 @@ void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
   }
   initialState = miqp::common::dynamic::ConvertBarkStateTo2ndOrder(
       observed_world.CurrentEgoState(), axy.first, axy.second);
-  
 }
 
 void BehaviorMiqpAgent::SetWarmstartType(
     miqp::planner::cplex::CplexWrapper::WarmstartType type) {
   warmstart_type_ = type;
   LOG(INFO) << "Warmstart type is now " << type;
+}
+
+void BehaviorMiqpAgent::IntroducePredictionError(Trajectory& prediction) {
+  assert(prediction.rows() > 1);
+  const double dt = prediction(1, StateDefinition::TIME_POSITION) -
+                    prediction(0, StateDefinition::TIME_POSITION);
+  const double new_dt = dt * prediction_error_time_percentage_;
+  // do not modify start point
+  for (size_t idx = 1; idx < prediction.rows(); ++idx) {
+    prediction(idx, StateDefinition::TIME_POSITION) =
+        prediction(idx - 1, StateDefinition::TIME_POSITION) + new_dt;
+  }
 }
 
 }  // namespace behavior

@@ -263,6 +263,13 @@ class BehaviorMiqpAgent : public BehaviorModel {
                         Eigen::MatrixXd& initialState,
                         bark::geometry::Line& refLine, double& desiredVelocity);
 
+  /**
+   * @brief modify the timing of a trajectory to model a prediction error
+   *
+   * @param prediction trajectory to modify
+   */
+  void IntroducePredictionError(Trajectory& prediction);
+
   MiqpPlannerSettings settings_;
   miqp::planner::MiqpPlanner planner_;
   double deltaSDesiredVelocity_;
@@ -298,6 +305,7 @@ class BehaviorMiqpAgent : public BehaviorModel {
   miqp::planner::cplex::CplexWrapper::WarmstartType warmstart_type_;
   bark::world::map::LaneCorridorPtr last_lane_corridor_;
   bool do_no_change_lane_corridor_;
+  double prediction_error_time_percentage_;
 };
 
 inline std::shared_ptr<BehaviorModel> BehaviorMiqpAgent::Clone() const {

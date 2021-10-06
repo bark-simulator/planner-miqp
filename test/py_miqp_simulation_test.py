@@ -53,7 +53,9 @@ class MiqpSimulationTest(unittest.TestCase):
                       "Miqp::UseBranchingPriorities": True,
                       "Miqp::MaxVelocityFitting": 10.0,
                       "Miqp::AdditionalStepsForReferenceLongerHorizon": 2,
-                      "Miqp::ParallelMode": -1
+                      "Miqp::ParallelMode": -1,
+                      "Miqp::DoNotChangeLaneCorridor": False,
+                      "Miqp::PredictionErrorTimePercentage": 0.0
                       }
         self.assertTrue(RunSimulation(merging, scenario, parameters))
 
