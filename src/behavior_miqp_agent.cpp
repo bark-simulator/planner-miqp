@@ -154,22 +154,23 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
 
   CheckPoseOutOfMap();
 
+  const double desiredVelocity = GetParams()->GetReal(
+      "Miqp::DesiredVelocity", "Desired Velocity Ego", 10.0);
+
   Eigen::MatrixXd initialState(
       1, static_cast<int>(InitialStateIndices::MIQP_INITIAL_STATE_SIZE));
   bool track_reference_positions = true;  // TODO: move?
   Line ref_line;
-  double tmp;
-  ProcessBarkAgent(observed_world, initialState, ref_line, tmp);
-  LOG(INFO) << "Ignoring this target speed computation for the ego agent";
+  double tmp_desiredVelocity = desiredVelocity;
+  ProcessBarkAgent(observed_world, initialState, ref_line, tmp_desiredVelocity,
+                   true);
 
   if (firstrun_) {
-    const double desiredVelocity = GetParams()->GetReal(
-        "Miqp::DesiredVelocity", "Desired Velocity Ego", 10.0);
-    LOG(INFO) << "Setting desired velocity for MIQP ego agent to "
-              << desiredVelocity;
     idx_ego_ = planner_.AddCar(initialState, ref_line, desiredVelocity,
                                deltaSDesiredVelocity_, current_time,
                                track_reference_positions);
+    LOG(INFO) << "Setting desired velocity for MIQP ego agent to "
+            << desiredVelocity;
     firstrun_ = false;
     car_idxs_.insert(std::make_pair(observed_world.GetEgoAgentId(), idx_ego_));
   } else {
@@ -180,9 +181,10 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
   reference_lines_.push_back(ref_line);
 
   if (multi_agent_planning_) {
-    // Remove cars from previous step
-    for (auto it_cars = car_idxs_.begin(); it_cars != car_idxs_.end();
-         ++it_cars) {
+    // Remove cars from previous step, reverse order as deleting intermediate
+    // cars is not implemented in the miqp planner class
+    for (auto it_cars = car_idxs_.end(); it_cars != car_idxs_.begin();
+         --it_cars) {
       if (it_cars->second != idx_ego_) {
         planner_.RemoveCar(it_cars->second);
       }
@@ -197,7 +199,7 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
       Line ref_line_j;
       double desiredVelocity;
       ProcessBarkAgent(*observed_world_j, initial_state_j, ref_line_j,
-                       desiredVelocity);
+                       desiredVelocity, false);
       if (fabs(prediction_error_time_percentage_) > 0.01) {
         desiredVelocity *= prediction_error_time_percentage_;
       }
@@ -677,9 +679,10 @@ void BehaviorMiqpAgent::CheckPoseOutOfMap() const {
 
 void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
                                          Eigen::MatrixXd& initialState,
-                                         Line& refLine,
-                                         double& desiredVelocity) {
+                                         Line& refLine, double& desiredVelocity,
+                                         bool isEgo) {
   // make sure ego vehicle is initially within map
+  const auto state = observed_world.CurrentEgoState();
   Polygon occupancyEgo = observed_world.GetEgoAgent()->GetPolygonFromState(
       observed_world.CurrentEgoState());
   if (!bark::geometry::Within(observed_world.CurrentEgoPosition(), envPoly_)) {
@@ -690,26 +693,27 @@ void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
     LOG(INFO) << "egopoly = [" << occupancyEgo.ToArray() << "]";
   }
 
-  const Trajectory last_traj =
-      observed_world.GetEgoAgent()->GetBehaviorTrajectory();
-  const auto state = observed_world.CurrentEgoState();
-  if (last_traj.rows() > 0) {
-    const double last_traj_vel_end =
-        last_traj(last_traj.rows() - 1, StateDefinition::VEL_POSITION);
-    desiredVelocity = last_traj_vel_end;
-    LOG(INFO) << "Setting agent target speed to last trajectory end speed = "
-              << desiredVelocity << " for agent id "
-              << observed_world.GetEgoAgent()->GetAgentId();
-  } else {
-    desiredVelocity = state(StateDefinition::VEL_POSITION);
-    LOG(INFO) << "Setting agent target speed to current speed = "
-              << desiredVelocity << " for agent id "
-              << observed_world.GetEgoAgent()->GetAgentId();
+  if (!isEgo) {
+    const Trajectory last_traj =
+        observed_world.GetEgoAgent()->GetBehaviorTrajectory();
+    if (last_traj.rows() > 0) {
+      const double last_traj_vel_end =
+          last_traj(last_traj.rows() - 1, StateDefinition::VEL_POSITION);
+      desiredVelocity = last_traj_vel_end;
+      LOG(INFO) << "Setting agent target speed to last trajectory end speed = "
+                << desiredVelocity << " for agent id "
+                << observed_world.GetEgoAgent()->GetAgentId();
+    } else {
+      desiredVelocity = state(StateDefinition::VEL_POSITION);
+      LOG(INFO) << "Setting agent target speed to current speed = "
+                << desiredVelocity << " for agent id "
+                << observed_world.GetEgoAgent()->GetAgentId();
+    }
   }
 
   double speed_for_lc_prediction =
       std::max(desiredVelocity, state(StateDefinition::VEL_POSITION));
-  if (do_no_change_lane_corridor_) {
+  if (isEgo && do_no_change_lane_corridor_) {
     if (!last_lane_corridor_) {
       last_lane_corridor_ =
           ChooseLaneCorridor(observed_world, speed_for_lc_prediction);

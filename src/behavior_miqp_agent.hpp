@@ -255,13 +255,15 @@ class BehaviorMiqpAgent : public BehaviorModel {
   /**
    * @brief converts bark agent to input representation of miqp planner
    *
-   * @param observed_world
-   * @param initialState
-   * @param refLine
+   * @param observed_world world with the calling agent as ego
+   * @param initialState out initial state for optimization
+   * @param refLine out lane center line 
+   * @param desiredVelocity out target velocity for optimization
+   * @param isEgo flag if the function is called from the ego agent
    */
   void ProcessBarkAgent(const world::ObservedWorld observed_world,
                         Eigen::MatrixXd& initialState,
-                        bark::geometry::Line& refLine, double& desiredVelocity);
+                        bark::geometry::Line& refLine, double& desiredVelocity, bool isEgo);
 
   /**
    * @brief modify the timing of a trajectory to model a prediction error

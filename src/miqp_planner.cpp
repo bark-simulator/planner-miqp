@@ -51,7 +51,7 @@ MiqpPlanner::MiqpPlanner(const Settings& settings,
                                  CplexWrapper::CPPINPUTS, settings.precision)),
       obstacles_roi_(bark::geometry::Polygon()),
       minimum_valid_speed_vx_vy_(
-          0.8)  // trajectories are cut off below this speed threshold
+          1.0)  // trajectories are cut off below this speed threshold
 {
   // std::cout << "Constructing MiqpPlanner" << std::endl;
   // Bind the parameters_ ptr to the cplex wrapper
