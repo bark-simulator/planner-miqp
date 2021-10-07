@@ -270,6 +270,24 @@ class BehaviorMiqpAgent : public BehaviorModel {
    */
   void IntroducePredictionError(Trajectory& prediction);
 
+  /**
+   * @brief Linear interpolation between two points of a trajectory in time
+   *
+   * @param p0 previous state
+   * @param p1 next state
+   * @param time interpolation timepoint
+   */
+  State Interpolate(const State& p0, const State& p1, const double& time) const;
+
+  /**
+   * @brief Constant velocity and angle extrapolation from (the last) point of a
+   * trajectory
+   *
+   * @param p0 point to extrapolate from
+   * @param time extrapolation timepoint
+   */
+  State Extrapolate(const State& p0, const double& time) const;
+
   MiqpPlannerSettings settings_;
   miqp::planner::MiqpPlanner planner_;
   double deltaSDesiredVelocity_;
@@ -306,6 +324,7 @@ class BehaviorMiqpAgent : public BehaviorModel {
   bark::world::map::LaneCorridorPtr last_lane_corridor_;
   bool do_no_change_lane_corridor_;
   double prediction_error_time_percentage_;
+  bool obstacles_soft_;
 };
 
 inline std::shared_ptr<BehaviorModel> BehaviorMiqpAgent::Clone() const {

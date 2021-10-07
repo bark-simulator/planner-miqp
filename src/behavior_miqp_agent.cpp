@@ -83,7 +83,11 @@ BehaviorMiqpAgent::BehaviorMiqpAgent(const commons::ParamsPtr& params)
           "Miqp::DoNotChangeLaneCorridor",
           "Stay in the lane corridor selected in the first step", true)),
       prediction_error_time_percentage_(
-          params->GetReal("Miqp::PredictionErrorTimePercentage", "", 0.0)) {
+          params->GetReal("Miqp::PredictionErrorTimePercentage", "", 0.0)),
+      obstacles_soft_(params->GetBool(
+          "Miqp::ObstaclesSoft",
+          "true: soft obstacle constraints, false: hard obstacle constraints",
+          true)) {
   Input input = Input(2);
   input << 0.0, 0.0;
   SetLastAction(input);
@@ -127,7 +131,8 @@ BehaviorMiqpAgent::BehaviorMiqpAgent(const BehaviorMiqpAgent& bm)
       last_dyn_occupancies_(bm.last_dyn_occupancies_),
       warmstart_type_(bm.warmstart_type_),
       last_lane_corridor_(bm.last_lane_corridor_),
-      do_no_change_lane_corridor_(bm.do_no_change_lane_corridor_) {}
+      do_no_change_lane_corridor_(bm.do_no_change_lane_corridor_),
+      obstacles_soft_(bm.obstacles_soft_) {}
 
 dynamic::Trajectory BehaviorMiqpAgent::Plan(
     double delta_time, const world::ObservedWorld& observed_world) {
@@ -193,7 +198,7 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
       double desiredVelocity;
       ProcessBarkAgent(*observed_world_j, initial_state_j, ref_line_j,
                        desiredVelocity);
-      if(fabs(prediction_error_time_percentage_) > 0.01) {
+      if (fabs(prediction_error_time_percentage_) > 0.01) {
         desiredVelocity *= prediction_error_time_percentage_;
       }
       int idx_other = planner_.AddCar(initial_state_j, ref_line_j,
@@ -229,7 +234,10 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
       std::size_t dyno_hash = DynamicOccupancy::GetHash((*it)->id, (*it)->type);
       Trajectory prediction = (*it)->prediction;
       if (fabs(prediction_error_time_percentage_) > 0.01) {
+        // LOG(INFO) << "True Other Prediction\n" << prediction;
         IntroducePredictionError(prediction);
+        // LOG(INFO) << "Prediction with error\n" << prediction;
+        (*it)->prediction = prediction;  // for visualization
       }
       if (obstacle_ids_.count(dyno_hash) == 0) {
         // obstacle needs to be added
@@ -411,11 +419,10 @@ BehaviorMiqpAgent::PredictAgentsAsDynamicObstacles(
   ApplyEgoModelForJointPrediction(observed_world);
 
   std::map<AgentId, DynamicOccupancyPtr> dyno_map;
-  bool is_soft = false;  // treat it as hard constraint
   for (const auto& agent_j : observed_world->GetOtherAgents()) {
     DynamicOccupancy dyn_pred(settings_.nr_steps, agent_j.first,
                               agent_j.second->GetShape(),
-                              OccupancyType::PREDICTION, is_soft);
+                              OccupancyType::PREDICTION, obstacles_soft_);
     dyno_map.insert(std::pair<AgentId, DynamicOccupancyPtr>(
         agent_j.first, std::make_shared<DynamicOccupancy>(dyn_pred)));
   }
@@ -691,11 +698,13 @@ void BehaviorMiqpAgent::ProcessBarkAgent(const ObservedWorld observed_world,
         last_traj(last_traj.rows() - 1, StateDefinition::VEL_POSITION);
     desiredVelocity = last_traj_vel_end;
     LOG(INFO) << "Setting agent target speed to last trajectory end speed = "
-              << desiredVelocity << " for agent id " << observed_world.GetEgoAgent()->GetAgentId();
+              << desiredVelocity << " for agent id "
+              << observed_world.GetEgoAgent()->GetAgentId();
   } else {
     desiredVelocity = state(StateDefinition::VEL_POSITION);
     LOG(INFO) << "Setting agent target speed to current speed = "
-              << desiredVelocity << " for agent id " << observed_world.GetEgoAgent()->GetAgentId();
+              << desiredVelocity << " for agent id "
+              << observed_world.GetEgoAgent()->GetAgentId();
   }
 
   double speed_for_lc_prediction =
@@ -731,14 +740,58 @@ void BehaviorMiqpAgent::SetWarmstartType(
 
 void BehaviorMiqpAgent::IntroducePredictionError(Trajectory& prediction) {
   assert(prediction.rows() > 1);
-  const double dt = prediction(1, StateDefinition::TIME_POSITION) -
-                    prediction(0, StateDefinition::TIME_POSITION);
-  const double new_dt = dt * prediction_error_time_percentage_;
+  Trajectory out;
+  const double new_dt = (prediction(1, StateDefinition::TIME_POSITION) -
+                         prediction(0, StateDefinition::TIME_POSITION)) *
+                        prediction_error_time_percentage_;
+  double t = prediction(0, StateDefinition::TIME_POSITION);
+  out = prediction;  // for first row
   // do not modify start point
   for (size_t idx = 1; idx < prediction.rows(); ++idx) {
-    prediction(idx, StateDefinition::TIME_POSITION) =
-        prediction(idx - 1, StateDefinition::TIME_POSITION) + new_dt;
+    t += new_dt;
+    // Find interpolation/extrapolation idx
+    size_t idx_interp;
+    for (idx_interp = 1; idx_interp < prediction.rows(); ++idx_interp) {
+      if (prediction(idx_interp, StateDefinition::TIME_POSITION) >= t) {
+        break;
+      }
+    }
+    if (idx_interp <= prediction.rows() - 1) {
+      // Interpolate
+      const State p0 = prediction.row(idx_interp - 1);
+      const State p1 = prediction.row(idx_interp);
+      out.row(idx) = Interpolate(p0, p1, t);
+    } else {
+      // Extrapolate
+      const State p0 = prediction.row(idx_interp - 1);
+      out.row(idx) = Extrapolate(p0, t);
+    }
   }
+  prediction = out;
+}
+
+State BehaviorMiqpAgent::Interpolate(const State& p0, const State& p1,
+                                     const double& time) const {
+  const double start_time = p0(StateDefinition::TIME_POSITION);
+  const double end_time = p1(StateDefinition::TIME_POSITION);
+  const double lambda = fabs((time - start_time) / (end_time - start_time));
+  return (1 - lambda) * p0 + (lambda)*p1;
+}
+
+State BehaviorMiqpAgent::Extrapolate(const State& p0,
+                                     const double& time) const {
+  State out(StateDefinition::MIN_STATE_SIZE);
+  out(StateDefinition::TIME_POSITION) = time;
+  const double dt = time - p0(StateDefinition::TIME_POSITION);
+  out(StateDefinition::X_POSITION) = p0(StateDefinition::X_POSITION) +
+                                     cos(p0(StateDefinition::THETA_POSITION)) *
+                                         p0(StateDefinition::VEL_POSITION) * dt;
+  out(StateDefinition::Y_POSITION) = p0(StateDefinition::Y_POSITION) +
+                                     sin(p0(StateDefinition::THETA_POSITION)) *
+                                         p0(StateDefinition::VEL_POSITION) * dt;
+  out(StateDefinition::VEL_POSITION) = p0(StateDefinition::VEL_POSITION);
+  out(StateDefinition::THETA_POSITION) = p0(StateDefinition::THETA_POSITION);
+  return out;
 }
 
 }  // namespace behavior
