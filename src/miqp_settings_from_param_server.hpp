@@ -56,7 +56,8 @@ miqp::planner::Settings MiqpSettingsFromParamServer(const bark::commons::ParamsP
     s.buffer_for_merging_tolerance = params->GetReal("Miqp::BufferForMergingTolerance", "Buffer serving as merging tolerance", 0.1);
     s.refLineInterpInc = params->GetReal("Miqp::RefLineInterpInc", "Reference line interpolation increment", 0.2);
     s.additionalStepsForReferenceLongerHorizon = params->GetInt("Miqp::AdditionalStepsForReferenceLongerHorizon", "additional steps for reference to intersect environment", 4);
-    s.cplexModelpath = "cplexmodel/"; // cmp.c_str();
+    std::string cplex_model_path_str = params->GetString("Miqp::CplexModelPath", "path to cplex model files", "cplexmodel/");
+    strcpy(s.cplexModelpath, cplex_model_path_str.c_str());
     s.useSos = params->GetBool("Miqp::UseSpecialOrderedSet", "", false);
     s.useBranchingPriorities = params->GetBool("Miqp::UseBranchingPriorities", "", false);
     int param_warmstart = params->GetInt("Miqp::WarmstartType", "", static_cast<int>(MiqpPlannerWarmstartType::NO_WARMSTART));

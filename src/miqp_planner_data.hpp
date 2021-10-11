@@ -213,7 +213,7 @@ inline Settings DefaultSettings() {
   s.buffer_for_merging_tolerance = 0.1;
   s.refLineInterpInc = 0.2;
   s.additionalStepsForReferenceLongerHorizon = 4;
-  s.cplexModelpath = "cplexmodel/";
+  strcpy(s.cplexModelpath, "cplexmodel/");
   s.useSos = false;
   s.useBranchingPriorities = false;
   s.warmstartType = MiqpPlannerWarmstartType::NO_WARMSTART;
@@ -229,7 +229,7 @@ inline Settings DefaultSettings() {
 
 inline Settings ApolloDefaultSettings() {
   Settings s = DefaultSettings();
-  s.cplexModelpath = "../bazel-bin/modules/planning/libplanning_component.so.runfiles/miqp_planner/cplex_modfiles/";
+  strcpy(s.cplexModelpath, "../bazel-bin/modules/planning/libplanning_component.so.runfiles/miqp_planner/cplex_modfiles/");
   s.buffer_cplex_outputs = true;
   return s;
 }
