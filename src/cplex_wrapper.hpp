@@ -79,9 +79,9 @@ class CplexWrapper {
    *precision that the results match! -2 is the sweet spot in the unit test.
    **/
 
-  CplexWrapper(const char* modpath, const char* modfile,
+  CplexWrapper(std::string modpath, std::string modfile,
                ParameterSource parameterSource, const int precision)
-      : modfile_(std::string(modpath) + std::string(modfile)),
+      : modfile_(modpath + modfile),
         datfile_(""),
         env_(IloEnv()),
         precision_(precision),
@@ -110,13 +110,13 @@ class CplexWrapper {
     settings_.setDisplayPrecision(precision);
   }
 
-  CplexWrapper(const char* modfile, ParameterSource parameterSource,
+  CplexWrapper(std::string modfile, ParameterSource parameterSource,
                const int precision)
       : CplexWrapper("cplexmodel/", modfile, parameterSource, precision) {
   }  // due to the bazel structure this is
      // the correct relative location....
 
-  CplexWrapper(const char* modfile, const int precision)
+  CplexWrapper(std::string modfile, const int precision)
       : CplexWrapper(modfile, ParameterSource::DATFILE, precision) {}
 
   CplexWrapper() : CplexWrapper("", ParameterSource::CPPINPUTS, 12) {}

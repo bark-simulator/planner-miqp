@@ -8,6 +8,8 @@
 #ifndef MIQP_PLANNER_SETTINGS_HEADER
 #define MIQP_PLANNER_SETTINGS_HEADER
 
+#include <string>
+
 enum MiqpPlannerWarmstartType {
     NO_WARMSTART = 0,
     RECEDING_HORIZON_WARMSTART = 1,
@@ -62,7 +64,7 @@ struct MiqpPlannerSettings {
   int rinsheur;
   int varsel;
   int mircuts;
-  const char* cplexModelpath;
+  char cplexModelpath[1000];
   bool useSos;
   bool useBranchingPriorities;
   MiqpPlannerWarmstartType warmstartType;
