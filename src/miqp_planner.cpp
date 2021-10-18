@@ -51,7 +51,7 @@ MiqpPlanner::MiqpPlanner(const Settings& settings,
                                  CplexWrapper::CPPINPUTS, settings.precision)),
       obstacles_roi_(bark::geometry::Polygon()),
       minimum_valid_speed_vx_vy_(
-          1.0)  // trajectories are cut off below this speed threshold
+          0.7)  // trajectories are cut off below this speed threshold
 {
   // std::cout << "Constructing MiqpPlanner" << std::endl;
   // Bind the parameters_ ptr to the cplex wrapper
@@ -351,7 +351,7 @@ void MiqpPlanner::UpdateCar(int thisIdx, Eigen::MatrixXd initialState,
   if (thisIdx == egoCarIdx_) {
     objectiveScale = settings_.lambda;
   } else {
-    objectiveScale = (1 - settings_.lambda) / parameters_->NumCars;
+    objectiveScale = (1 - settings_.lambda) / (parameters_->NumCars - 1);
   }
 
   if (track_reference_positions) {
