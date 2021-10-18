@@ -144,6 +144,16 @@ dynamic::Trajectory BehaviorMiqpAgent::Plan(
 
   // Check if overall environment polygon changed and update planner
   if (CalculateEnvironmentPolygon(observed_world)) {
+    if (multi_agent_planning_) {
+      for (const auto& agent_j : observed_world.GetOtherAgents()) {
+        ObservedWorldPtr observed_world_j =
+            observed_world.ObserveForOtherAgent(agent_j.first);  // clones world
+        Polygon envpoly_agent_j =
+            observed_world_j->GetRoadCorridor()->GetPolygon();
+        envPoly_.ConcatenatePolygons(envpoly_agent_j);
+      }
+    }
+
     planner_.UpdateConvexifiedMap(envPoly_);
   }
 
