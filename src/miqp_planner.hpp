@@ -414,8 +414,8 @@ class MiqpPlanner {
   miqp::common::geometry::PolygonMap convex_shrinked_env_polygons_all_cars_;
   miqp::common::geometry::PolygonMap
       convex_shrinked_env_polygons_all_cars_union_;
-  const char* cplexModelname_;
-  const char* cplexModelpath_;
+  const std::string cplexModelname_;
+  const std::string cplexModelpath_;
   miqp::planner::cplex::CplexWrapper cplexWrapper_;
   bark::geometry::Polygon obstacles_roi_;
   double minimum_valid_speed_vx_vy_;
