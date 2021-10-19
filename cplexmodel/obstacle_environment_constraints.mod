@@ -19,7 +19,7 @@ subject to
 						(pos_x_front_UB[c,i] - line.x1) * (line.y2 - line.y1) >= -BigM_pos_env * notWithinEnvironmentFrontUbUb[c,j,i];
 	
 					(line.x2 - line.x1) * (pos_y_front_UB[c,i] - line.y1) - 
-						(pos_x_front_LB[c,i] - line.x1) * (line.y2 - line.y1) >= -BigM_pos_env * notWithinEnvironmentFrontLbUb[c,j,j];
+						(pos_x_front_LB[c,i] - line.x1) * (line.y2 - line.y1) >= -BigM_pos_env * notWithinEnvironmentFrontLbUb[c,j,i];
 	
 					(line.x2 - line.x1) * (pos_y_front_LB[c,i] - line.y1) - 
 						(pos_x_front_UB[c,i] - line.x1) * (line.y2 - line.y1) >= -BigM_pos_env * notWithinEnvironmentFrontUbLb[c,j,i];
