@@ -1168,6 +1168,18 @@ bark::models::dynamic::Trajectory MiqpPlanner::GetBarkTrajectory(
   return trajBark;
 }
 
+Eigen::MatrixXd MiqpPlanner::GetThirdOrderStateAtResultIdx(const int idx,
+                                                           const int caridx) {
+  const std::shared_ptr<RawResults> rawResults = cplexWrapper_.getRawResults();
+  Eigen::MatrixXd state(1, 6);
+  assert(idx < rawResults->N);
+  assert(caridx < rawResults->NrCars);
+  state << rawResults->pos_x(caridx, idx), rawResults->vel_x(caridx, idx),
+      rawResults->acc_x(caridx, idx), rawResults->pos_y(caridx, idx),
+      rawResults->vel_y(caridx, idx), rawResults->acc_y(caridx, idx);
+  return state;
+}
+
 bool MiqpPlanner::IsVxVyValid(const double& vx, const double& vy) {
   return (fabs(vx) > minimum_valid_speed_vx_vy_ ||
           fabs(vy) > minimum_valid_speed_vx_vy_);

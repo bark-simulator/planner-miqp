@@ -108,11 +108,11 @@ class MiqpPlanner {
   int AddStaticObstacle(bark::geometry::Polygon& obstacleShape);
 
   /**
-   * @brief returns number of optimization support points
+   * @brief returns number of agents
    *
    * @return int
    */
-  int GetNrCars();
+  int GetNrCars() { return parameters_->NumCars; };
 
   /**
    * @brief removes car from list of controlled agents
@@ -199,8 +199,8 @@ class MiqpPlanner {
    * @param start_time
    * @return bark::models::dynamic::Trajectory
    */
-  bark::models::dynamic::Trajectory GetBarkTrajectory(
-      const int carIdx, const float start_time);
+  bark::models::dynamic::Trajectory GetBarkTrajectory(const int carIdx,
+                                                      const float start_time);
 
   /**
    * @brief creates state definition suitable for optimization
@@ -334,6 +334,15 @@ class MiqpPlanner {
    */
   bark::models::dynamic::Trajectory GetLastReference(int carIdx) const;
 
+  /**
+   * @brief returns the raw result state at the current idx
+   *
+   * @param idx time index
+   * @param caridx car idx
+   */
+  Eigen::MatrixXd GetThirdOrderStateAtResultIdx(const int idx,
+                                                const int caridx);
+
  private:
   /**
    * @brief calculates warmstart
@@ -389,7 +398,8 @@ class MiqpPlanner {
   void UpdateObstaclesROI(const double x, const double y, const double theta);
 
   /**
-   * @brief check if either vx or vy is below the low speed threshold minimum_valid_speed_vx_vy_
+   * @brief check if either vx or vy is below the low speed threshold
+   * minimum_valid_speed_vx_vy_
    *
    * @param vx
    * @param vy

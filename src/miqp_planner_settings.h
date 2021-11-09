@@ -22,7 +22,7 @@ enum MiqpPlannerParallelMode {
   // https://www.ibm.com/support/knowledgecenter/SSSA5P_20.1.0/ilog.odms.cplex.help/CPLEX/Parameters/topics/ParallelMode.html
   DETERMINISTIC = 0, // CPX_PARALLEL_DETERMINISTIC,
   AUTO = 1, // CPX_PARALLEL_AUTO,
-  OPPORTUNISTIC = 2 // CPX_PARALLEL_OPPORTUNISTIC
+  OPPORTUNISTIC = -1 // CPX_PARALLEL_OPPORTUNISTIC
 };
 
 struct MiqpPlannerSettings {
