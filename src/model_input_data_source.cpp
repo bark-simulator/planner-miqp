@@ -186,8 +186,6 @@ void ModelInputDataSource::read() const {
   addElement(handler, "nr_regions", parameters_->nr_regions);
   addElement(handler, "nr_obstacles", parameters_->nr_obstacles);
   addElement(handler, "max_lines_obstacles", parameters_->max_lines_obstacles);
-  addElement(handler, "NumCar2CarCollisions",
-             parameters_->NumCar2CarCollisions);
   addElement(handler, "NumCars", parameters_->NumCars);
 
   // cplex solver settings

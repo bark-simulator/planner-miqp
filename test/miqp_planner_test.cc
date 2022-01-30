@@ -401,7 +401,7 @@ TEST(miqp_planner, receding_horizon_twocars) {
     ASSERT_TRUE(succ);
     {
       Trajectory traj = planner.GetBarkTrajectory(idx1, t);
-
+      ASSERT_GT(traj.cols(), 1);
       x1.push_back(traj(1, X_POSITION));
       y1.push_back(traj(1, Y_POSITION));
 
@@ -413,7 +413,7 @@ TEST(miqp_planner, receding_horizon_twocars) {
     }
     {
       Trajectory traj = planner.GetBarkTrajectory(idx2, t);
-
+      ASSERT_GT(traj.cols(), 1);
       x2.push_back(traj(1, X_POSITION));
       y2.push_back(traj(1, Y_POSITION));
 
@@ -814,9 +814,8 @@ void recedingHorizonWarmstartTestHelper(
   double dt = settings.ts;
   for (double t = 0; t < tend; t += dt) {
     // Capture stdout:
-    //
-  https
-      :  // stackoverflow.com/questions/3803465/how-to-capture-stdout-stderr-with-googletest
+    // https://stackoverflow.com / questions / 3803465 / how - to - capture -
+    // stdout - stderr - with - googletest
     std::stringstream buffer;
     std::streambuf* sbuf = std::cout.rdbuf();
     std::cout.rdbuf(buffer.rdbuf());
@@ -1235,12 +1234,12 @@ TEST(miqp_planner, stop_reference_end) {
   for (float t = 0; t < tend; t += dt) {
     bool succ = planner.Plan(t);
     EXPECT_TRUE(succ);
-    if (!succ || (fabs(v.back()) < 0.1 &&
+    if (!succ || (fabs(v.back()) < 1.0 && //minimum miqp planning speed of 1.0m/s
                   fabs(x.back() - xend) < x_near_end_threshold)) {
       break;
     }
     Trajectory traj = planner.GetBarkTrajectory(idx, t);
-
+    ASSERT_GT(traj.cols(), 1);
     x.push_back(traj(1, X_POSITION));
     y.push_back(traj(1, Y_POSITION));
     v.push_back(traj(1, VEL_POSITION));
@@ -1266,7 +1265,7 @@ TEST(miqp_planner, stop_reference_end) {
     planner.UpdateCar(idx, initialState, ref, t);
   }
 
-  EXPECT_NEAR(v.back(), 0.0, 0.1) << "v = " << v << " vx = " << vx;
+  EXPECT_NEAR(v.back(), 1.0, 0.5) << "v = " << v << " vx = " << vx;
   EXPECT_NEAR(x.back(), xend, x_near_end_threshold) << "x = " << x;
 }
 
@@ -1284,36 +1283,9 @@ TEST(miqp_planner, stop_dont_drive) {
   initialState << xend, 0.01, 0, 0, 0, 0;
   auto parameters = planner.GetParameters();
   int idx = planner.AddCar(initialState, ref, vDes, deltaSForDesiredVel, 0.0);
-
-  float tend = 0.5;
-  float dt = settings.ts;
-
-  std::vector<float> x, y, v;
-  x.push_back(initialState(0, MIQP_STATE_X));
-  y.push_back(initialState(0, MIQP_STATE_Y));
-  v.push_back(sqrt(pow(initialState(0, MIQP_STATE_VY), 2) +
-                   pow(initialState(0, MIQP_STATE_VX), 2)));
-
-  for (float t = 0; t < tend; t += dt) {
-    bool succ = planner.Plan(t);
-    EXPECT_TRUE(succ);
-    if (!succ) {
-      break;
-    }
-    Trajectory traj = planner.GetBarkTrajectory(idx, t);
-
-    x.push_back(traj(1, X_POSITION));
-    y.push_back(traj(1, Y_POSITION));
-    v.push_back(traj(1, VEL_POSITION));
-
-    float a = (traj(1, VEL_POSITION) - traj(0, VEL_POSITION)) / dt;
-    initialState.row(0) = MiqpPlanner::CarStateToMiqpState(
-        traj(1, X_POSITION), traj(1, Y_POSITION), traj(1, THETA_POSITION),
-        traj(1, VEL_POSITION), a);
-    planner.UpdateCar(idx, initialState, ref, t);
-  }
-
-  EXPECT_NEAR(v.back(), 0.0, 0.1) << v;
+  float t = 0.0;
+  bool succ = planner.Plan(t);
+  EXPECT_TRUE(succ);
 }
 
 TEST(miqp_planner, plan_max_fitting_speed_10) {
@@ -1553,6 +1525,45 @@ TEST(miqp_planner, plan_with_outside_poly_inside_ROI) {
   }
 }
 
-// TODO tobias Unit Test for Warmstarting Obstacles
+TEST(miqp_planner, n_agents) {
+  int max_agents = 10;
+  Polygon envPoly;
+  Settings settings = DefaultTestSettings();
+  settings.max_solution_time = 90;
+  settings.nr_steps = 5;
+  double vDes = 7;
+  double deltaSForDesiredVel = 1;
+  bark::geometry::Line ref;
+  ref.AddPoint({0, 0});
+  ref.AddPoint({1000, 0});
+  Eigen::MatrixXd initialState(1, 6);
+  initialState << 0, 3, 0, 0, 0.1, 0;
 
-// TODO tobias Unit Test for Warmstarting Multiple Cars
+  // n tests: start one opti run with increasing number of agents
+  for (int idx_max_agent = 1; idx_max_agent <= max_agents; ++idx_max_agent) {
+    MiqpPlanner planner = MiqpPlanner(settings, envPoly);
+    auto parameters = planner.GetParameters();
+
+    int idx_last;
+    for (int idx_agent = 1; idx_agent <= idx_max_agent; ++idx_agent) {
+      initialState(0) = static_cast<double>(idx_agent * 10);
+      idx_last = planner.AddCar(initialState, ref, vDes, deltaSForDesiredVel);
+    }
+    EXPECT_EQ(idx_max_agent, parameters->NumCars);
+
+    double t = 0;
+    bool succ = planner.Plan(t);
+    EXPECT_TRUE(succ);
+
+    auto sol = planner.GetSolution();
+    EXPECT_EQ(idx_max_agent, sol->NrCars);
+    EXPECT_EQ(idx_max_agent - 1, sol->NrCarToCarCollisions);
+
+    // Trajectory traj = planner.GetBarkTrajectory(idx_last, t);
+    // std::cout << "planned traj last agent = " << traj;
+  }
+}
+
+// TODO Unit Test for Warmstarting Obstacles
+
+// TODO Unit Test for Warmstarting Multiple Cars

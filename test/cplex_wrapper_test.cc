@@ -28,9 +28,9 @@ std::tuple<ModelParameters, RawResults> generateTestDataHelper() {
   int nr_regions = 32;
   int nr_obstacles = 1;
   int max_lines_obstacles = 4;
-  int NumCar2CarCollisions = 0;
   int NumCars = 1;
   int NumStates = 6;
+  int NumCar2CarCollisions = NumCars - 1;
 
   // TODO: put these parameter in constructor of ModelParameters, as resizing
   // depends on them
@@ -39,7 +39,6 @@ std::tuple<ModelParameters, RawResults> generateTestDataHelper() {
   mp.nr_regions = nr_regions;
   mp.nr_obstacles = nr_obstacles;
   mp.max_lines_obstacles = max_lines_obstacles;
-  mp.NumCar2CarCollisions = NumCar2CarCollisions;
   mp.NumCars = NumCars;
 
   float eps = 0.000001;
@@ -328,7 +327,7 @@ std::tuple<ModelParameters, RawResults> generateTestDataHelper() {
       {{-0.61586, -0.49917, -0.38784, -0.28136, -0.17914,  -0.080684, 0.014167,
         0.10499,  0.19055,  0.26848,  0.33512,  0.38525,   0.41188,   0.40619,
         0.35735,  0.22628,  0.097256, 0.029291, 0.0036965, 0}});
-  wv.slackvars.resize(NumCar2CarCollisions, NumSteps, 4);
+  wv.slackvars.resize(NumCar2CarCollisions, NumCar2CarCollisions, NumSteps, 4);
   wv.slackvars.setValues({});
   wv.pos_x_front_UB.resize(NumCars, NumSteps);
   wv.pos_x_front_UB.setValues(
@@ -452,7 +451,8 @@ std::tuple<ModelParameters, RawResults> generateTestDataHelper() {
          {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {0, 0, 0, 0}},
          {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {0, 0, 0, 0}},
          {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {0, 0, 0, 0}}}}});
-  wv.car2car_collision.resize(NumCar2CarCollisions, NumSteps, 16);
+  wv.car2car_collision.resize(NumCar2CarCollisions, NumCar2CarCollisions,
+                              NumSteps, 16);
   wv.car2car_collision.setValues({});
 
   return {mp, wv};
@@ -866,10 +866,10 @@ TEST(cplex_wrapper_test, test_problem_properties) {
   EXPECT_EQ(29834, sp.NonZeroCoefficients);  // values from the oplide
   EXPECT_EQ(1240, sp.NrBinaryVariables);
   EXPECT_EQ(12361, sp.NrConstraints);
-  EXPECT_EQ(55018,
+  EXPECT_LT(10000,
             sp.NrIterations);  // oplide: 52555 (deviation is ok, reproducable)
   EXPECT_EQ(340, sp.NrFloatVariables);
-  EXPECT_EQ(20,
+  EXPECT_LT(2,
             sp.NrSolutionPool);  // oplide: 15 (deviation is ok, reproducable)
   EXPECT_NEAR(9.57603, sp.objective, 1e-5);
   EXPECT_EQ(0, status);

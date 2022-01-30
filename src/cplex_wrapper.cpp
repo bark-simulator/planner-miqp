@@ -321,10 +321,10 @@ void CplexWrapper::collectRawResults(IloOplModel& opl) {
       static_cast<int>(externalData.getElement("nr_obstacles").asInt());
   const int MaxLinesObstacles =
       static_cast<int>(externalData.getElement("max_lines_obstacles").asInt());
-  const int NrCarToCarCollisions =
-      static_cast<int>(externalData.getElement("NumCar2CarCollisions").asInt());
   const int NrCars =
       static_cast<int>(externalData.getElement("NumCars").asInt());
+  const int NrCarToCarCollisions =
+      NrCars - 1;  // collision matrix is lower triange
 
   rawResults_->N = N;
   rawResults_->NrEnvironments = NrEnvironments;
@@ -364,11 +364,11 @@ void CplexWrapper::collectRawResults(IloOplModel& opl) {
       NrCars, NrObstacles, N, MaxLinesObstacles,
       4);  // 4 : all combinations of UBUB,  UBLB, LBUB, UBUB
   rawResults_->car2car_collision.resize(
-      NrCarToCarCollisions, N,
+      NrCarToCarCollisions, NrCarToCarCollisions, N,
       16);  // 16 Idxs: Rear/rear = 1..4, Rear/front = 5..8, Front/rear
             // = 9..12, Front/front = 13..16
   rawResults_->slackvars.resize(
-      NrCarToCarCollisions, N,
+      NrCarToCarCollisions, NrCarToCarCollisions, N,
       4);  // 4 Idxs: rear x = 1, rear y = 2, front x = 3, front y = 4
   rawResults_->slackvarsObstacle.resize(NrCars, NrObstacles, N);
   rawResults_->slackvarsObstacle_front.resize(
@@ -436,9 +436,9 @@ void CplexWrapper::collectRawResults(IloOplModel& opl) {
                                               rawResults_->deltacc);
   getDecisionVariable<Eigen::Tensor<int, 5> >(opl.getElement("deltacc_front"),
                                               rawResults_->deltacc_front);
-  getDecisionVariable<Eigen::Tensor<int, 3> >(
+  getDecisionVariable<Eigen::Tensor<int, 4> >(
       opl.getElement("car2car_collision"), rawResults_->car2car_collision);
-  getDecisionVariable<Eigen::Tensor<int, 3> >(opl.getElement("slackvars"),
+  getDecisionVariable<Eigen::Tensor<int, 4> >(opl.getElement("slackvars"),
                                               rawResults_->slackvars);
   getDecisionVariable<Eigen::Tensor<int, 3> >(
       opl.getElement("slackvarsObstacle"), rawResults_->slackvarsObstacle);
@@ -738,14 +738,13 @@ void CplexWrapper::setBranchingPriorities(IloOplModel& opl, IloCplex& cplex) {
       static_cast<int>(externalData.getElement("nr_environments").asInt());
   const int NrRegions =
       static_cast<int>(externalData.getElement("nr_regions").asInt());
+  const int NrCars =
+      static_cast<int>(externalData.getElement("NumCars").asInt());
   // const int NrObstacles =
   //     static_cast<int>(externalData.getElement("nr_obstacles").asInt());
   // const int MaxLinesObstacles =
   //     static_cast<int>(externalData.getElement("max_lines_obstacles").asInt());
-  // const int NrCarToCarCollisions =
-  //     static_cast<int>(externalData.getElement("NumCar2CarCollisions").asInt());
-  const int NrCars =
-      static_cast<int>(externalData.getElement("NumCars").asInt());
+  // const int NrCarToCarCollisions = NrCars - 1;
 
   const int increase_prio = increasedBranchingPriorityValue_;
   const int default_prio = 0;

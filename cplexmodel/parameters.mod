@@ -1,3 +1,8 @@
+// Copyright (c) 2020 Tobias Kessler, Klemens Esterle
+//
+// This work is licensed under the terms of the MIT license.
+// For a copy, see <https://opensource.org/licenses/MIT>.
+
 //=========================================
 // Solver settings
 float max_solution_time = ...;
@@ -36,8 +41,7 @@ range RegionRange = 1..nr_regions;
 int NumCars = ...; // number of vehicle agents (not obstacles)
 range CarRange = 1..NumCars;
 
-int NumCar2CarCollisions = ...; // Number of necessary collision checks: (n*(n-1)) /2
-range car2carCollisionRange = 1..NumCar2CarCollisions;
+// Size and range for agent2agent collision matrix set after initialization
 
 float min_vel_x_y = ...; 
 float max_vel_x_y = ...;

@@ -3,7 +3,6 @@ nr_environments = 0;
 nr_regions = 16;
 nr_obstacles = 0;
 max_lines_obstacles = 0;
-NumCar2CarCollisions = 0;
 NumCars = 1;
 max_solution_time = 100;
 relative_mip_gap_tolerance = 0.1;

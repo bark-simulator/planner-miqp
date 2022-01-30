@@ -8,6 +8,7 @@ float RR[CarRange][CarRange];
 //float Sqrt2RR[CarRange][CarRange];
 float costheta[CarRange];
 float sintheta[CarRange];
+int NumCar2CarCollisions;
 execute INITIALIZE 
 {
 	//Calculate radius - radius distance for each combination of vehicles	
@@ -25,5 +26,10 @@ execute INITIALIZE
 	{
 		sintheta[c] = Math.sin(Math.atan2(IntitialState[c][5],IntitialState[c][2]));
 		costheta[c] = Math.cos(Math.atan2(IntitialState[c][5],IntitialState[c][2]));
-	}		
+	}	
+	
+	// agent2agent collision matrix is squared with dimension numcars-1 x numcars-1
+	NumCar2CarCollisions = NumCars - 1;	
 }
+range car2carCollisionRange = 1..NumCar2CarCollisions;
+

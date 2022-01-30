@@ -51,6 +51,7 @@ execute PARAMS {
   //cplex.advind = 1;
 }
 
+include "initialization.mod";
 include "decision_variables.mod";
 
 // for multi-objective
@@ -64,7 +65,6 @@ execute
 	temp_time = before.getTime();
 }
 
-include "initialization.mod";
 include "objective_function.mod";
 include "initial_conditions.mod";
 include "model_region_constraints.mod";

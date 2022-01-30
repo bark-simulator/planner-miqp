@@ -47,8 +47,7 @@ dvar float slackvarsObstacle[CarRange][ObstaclesRange][idxRange] in 0..1;
 dvar float slackvarsObstacle_front[CarRange][ObstaclesRange][idxRange][1..4] in 0..1; // 4 is not a magic number here but all combinations of UBUB, UBLB, LBUB, UBUB
 
 // car to car collisions
-dvar boolean car2car_collision[car2carCollisionRange][idxRange][1..16]; // Idxs: Rear/rear = 1..4, Rear/front = 5..8, Front/rear = 9..12, Front/front = 13..16
+dvar boolean car2car_collision[car2carCollisionRange][car2carCollisionRange][idxRange][1..16]; // Idxs: Rear/rear = 1..4, Rear/front = 5..8, Front/rear = 9..12, Front/front = 13..16
 
 // slack variables for agent to agent collision
-dvar float slackvars[car2carCollisionRange][idxRange][1..4] in 0..maximum_slack; //Idxs: rear x = 1, rear y = 2, front x = 3, front y = 4
-
+dvar float slackvars[car2carCollisionRange][car2carCollisionRange][idxRange][1..4] in 0..maximum_slack; //Idxs: rear x = 1, rear y = 2, front x = 3, front y = 4

@@ -15,7 +15,7 @@ dexpr float costs = sum(i in idxRange, c in CarRange)
 						+ WEIGHTS_JERK_Y[c] * u_y[c,i]*u_y[c,i])
 						+ sum(i in idxRange, c in CarRange, o in ObstaclesRange) (WEIGHTS_SLACK_OBSTACLE*slackvarsObstacle[c,o,i]*slackvarsObstacle[c,o,i])
 						+ sum(i in idxRange, c in CarRange, o in ObstaclesRange, s in 1..4) (WEIGHTS_SLACK_OBSTACLE*slackvarsObstacle_front[c,o,i,s]*slackvarsObstacle_front[c,o,i,s])
-						+ sum(i in idxRange, c in car2carCollisionRange, s in 1..4) (WEIGHTS_SLACK*slackvars[c,i,s]*slackvars[c,i,s]);
+						+ sum(i in idxRange, c1 in car2carCollisionRange, c2 in car2carCollisionRange, s in 1..4) (WEIGHTS_SLACK*slackvars[c1,c2,i,s]*slackvars[c1,c2,i,s]);
 minimize costs;
 
 // Does not work out of the box: Multi-Objective formulation:

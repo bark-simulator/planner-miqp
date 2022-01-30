@@ -62,7 +62,6 @@ MiqpPlanner::MiqpPlanner(const Settings& settings,
   parameters_->nr_regions = settings.nr_regions;
   parameters_->NumSteps = settings.nr_steps;
   parameters_->NumCars = 0;
-  parameters_->NumCar2CarCollisions = 0;
   parameters_->nr_obstacles = 0;
   parameters_->nr_environments = 0;
 
@@ -188,7 +187,6 @@ int MiqpPlanner::AddCar(Eigen::MatrixXd initialState, const Line& referencePath,
   const int nrStates = initialState.cols();
   const int nrSteps = settings_.nr_steps;
   parameters_->NumCars = nrCars;
-  parameters_->NumCar2CarCollisions = nrCars * (nrCars - 1) / 2;
 
   parameters_->CollisionRadius.conservativeResize(nrCars);
   parameters_->CollisionRadius(thisIdx) = settings_.collisionRadius;
@@ -564,7 +562,6 @@ void MiqpPlanner::RemoveCar(int thisIdx) {
   const int nrSteps = settings_.nr_steps;
   const int nrRegions = settings_.nr_regions;
   parameters_->NumCars = nrCars;
-  parameters_->NumCar2CarCollisions = nrCars * (nrCars - 1) / 2;
 
   // TODO TOBIAS  this is a code duplication with AddCar -> move to service
   // method.
@@ -838,8 +835,10 @@ void MiqpPlanner::CalculateWarmstart() {
     warmstart_->region_change_not_allowed_x_positive.resize(NrCars, N);
     warmstart_->region_change_not_allowed_y_negative.resize(NrCars, N);
     warmstart_->region_change_not_allowed_y_positive.resize(NrCars, N);
-    warmstart_->car2car_collision.resize(NrCarToCarCollisions, N, 16);
-    warmstart_->slackvars.resize(NrCarToCarCollisions, N, 4);
+    warmstart_->car2car_collision.resize(NrCarToCarCollisions,
+                                         NrCarToCarCollisions, N, 16);
+    warmstart_->slackvars.resize(NrCarToCarCollisions, NrCarToCarCollisions, N,
+                                 4);
   }
 
   // Warmstart model parameters
@@ -988,28 +987,30 @@ void MiqpPlanner::CalculateWarmstart() {
   // TODO Tobias: Implementations untested!
   if (NrCarToCarCollisions > 0) {
     {
-      Eigen::array<long, 3> offset = {0, 0, 0};
-      Eigen::array<long, 3> extent = {NrCarToCarCollisions, N - 1, 16};
-      Eigen::array<long, 3> offset_shift = {0, 1, 0};
+      Eigen::array<long, 4> offset = {0, 0, 0};
+      Eigen::array<long, 4> extent = {NrCarToCarCollisions,
+                                      NrCarToCarCollisions, N - 1, 16};
+      Eigen::array<long, 4> offset_shift = {0, 0, 1, 0};
       warmstart_->car2car_collision.slice(offset, extent) =
           rr->car2car_collision.slice(offset_shift, extent);
 
-      offset = {0, N - 1, 0};
-      extent = {NrCarToCarCollisions, 1, 16};
-      offset_shift = {0, N - 1, 0};
+      offset = {0, 0, N - 1, 0};
+      extent = {NrCarToCarCollisions, NrCarToCarCollisions, 1, 16};
+      offset_shift = {0, 0, N - 1, 0};
       warmstart_->car2car_collision.slice(offset, extent) =
           rr->car2car_collision.slice(offset_shift, extent);
     }
     {
-      Eigen::array<long, 3> offset = {0, 0, 0};
-      Eigen::array<long, 3> extent = {NrCarToCarCollisions, N - 1, 4};
-      Eigen::array<long, 3> offset_shift = {0, 1, 0};
+      Eigen::array<long, 4> offset = {0, 0, 0, 0};
+      Eigen::array<long, 4> extent = {NrCarToCarCollisions,
+                                      NrCarToCarCollisions, N - 1, 4};
+      Eigen::array<long, 4> offset_shift = {0, 0, 1, 0};
       warmstart_->slackvars.slice(offset, extent) =
           rr->slackvars.slice(offset_shift, extent);
 
-      offset = {0, N - 1, 0};
-      extent = {NrCarToCarCollisions, 1, 4};
-      offset_shift = {0, N - 1, 0};
+      offset = {0, 0, N - 1, 0};
+      extent = {NrCarToCarCollisions, NrCarToCarCollisions, 1, 4};
+      offset_shift = {0, 0, N - 1, 0};
       warmstart_->slackvars.slice(offset, extent) =
           rr->slackvars.slice(offset_shift, extent);
     }
